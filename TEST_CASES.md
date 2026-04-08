@@ -111,4 +111,4 @@
 | PM2.5 (Fine Particulates) | 25 μg/m³ | 24-hour |
 | PM10 (Coarse Particulates) | 50 μg/m³ | 24-hour |
 
-> **Note:** WeatherAPI returns instantaneous pollutant readings, not time-averaged values. The calculated NEPM AQI is therefore indicative rather than a certified regulatory value. For official air quality readings in Australia refer to the relevant state EPA (e.g. NSW EPA, EPA Victoria, EPA Queensland).
+

@@ -1,52 +1,18 @@
 version: 2.1
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# WeatherAPI Test Suite — CircleCI Configuration
-#
-# ENDPOINT UNDER TEST
-#   Both features call the same endpoint: {{base_url}}/current.json
-#   Feature 1: aqi=no   → validates current weather fields
-#   Feature 2: aqi=yes  → validates the air_quality block in the same response
-#
-# HOW TO TRIGGER A SINGLE FEATURE FROM THE CIRCLECI UI
-#   1. Go to your project in CircleCI → Pipelines
-#   2. Click "Trigger Pipeline" (top right)
-#   3. Under "Add Parameters", set:
-#        run_current_weather  →  true / false
-#        run_air_quality      →  true / false
-#        city                 →  e.g. Melbourne  (overrides default Sydney)
-#        use_data_file        →  true  (iterates over all cities in data/cities.json)
-#   4. Click "Trigger Pipeline" — only the jobs matching your flags will run
-#
-# HOW TO PASS city VIA THE CIRCLECI API (curl)
-#   curl --request POST \
-#     --url https://circleci.com/api/v2/project/gh/<ORG>/<REPO>/pipeline \
-#     --header "Circle-Token: $CIRCLECI_TOKEN" \
-#     --header "Content-Type: application/json" \
-#     --data '{
-#       "branch": "main",
-#       "parameters": {
-#         "run_current_weather": true,
-#         "run_air_quality": false,
-#         "city": "Melbourne"
-#       }
-#     }'
-#
-# SECRETS — add these in CircleCI Project Settings → Environment Variables:
-#   WEATHERAPI_KEY   →  your API key from weatherapi.com
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 parameters:
 
   run_current_weather:
     type: boolean
     default: true
-    description: "Run Feature 1 — /current.json?aqi=no (current weather tests)"
+    description: "Feature 1 — /current.json?aqi=no (current weather tests)"
 
   run_air_quality:
     type: boolean
     default: true
-    description: "Run Feature 2 — /current.json?aqi=yes (air quality tests)"
+    description: "Feature 2 — /current.json?aqi=yes (air quality tests)"
 
   city:
     type: string
@@ -190,7 +156,7 @@ jobs:
 # ─────────────────────────────────────────────────────────────────────────────
 workflows:
 
-  # ── On every push to main: run both features with default city (Sydney) ──
+  # On every push to main: This will run both features with default city (Sydney)
   on_push:
     when:
       and:
@@ -201,7 +167,7 @@ workflows:
       - feature1_current_weather
       - feature2_air_quality
 
-  # ── Manual trigger: run only Feature 1 ───────────────────────────────────
+  # Manual trigger: run only Feature 1 which will find the current forecast
   run_feature1_only:
     when:
       and:
@@ -210,7 +176,7 @@ workflows:
     jobs:
       - feature1_current_weather
 
-  # ── Manual trigger: run only Feature 2 ───────────────────────────────────
+  # ── Manual trigger: run only Feature 2 which will focus on teh aqi feature
   run_feature2_only:
     when:
       and:
@@ -219,7 +185,7 @@ workflows:
     jobs:
       - feature2_air_quality
 
-  # ── Manual trigger: run both features (explicit) ──────────────────────────
+  # ── Manual trigger: run both features, This is kind of 1 where we run on push to main
   run_both_features:
     when:
       and:

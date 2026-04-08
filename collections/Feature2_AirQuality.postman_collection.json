@@ -20,7 +20,7 @@
                   "const apiKey = pm.variables.get('api_key');",
                   "const city = pm.variables.get('city');",
                   "",
-                  "if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {",
+                  "if (!apiKey || apiKey === 'WEATHER_API_KEY') {",
                   "    throw new Error('api_key is not set');",
                   "}",
                   "if (!city || city.trim() === '') {",

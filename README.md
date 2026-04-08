@@ -24,7 +24,7 @@ TEST_CASES.md
 
 
 
-In `environments/WeatherAPI_Shared.postman_environment.json` replace `YOUR_API_KEY_HERE` with your key. The `city` variable defaults to `Sydney` — change it there too if you want a different default.
+In `environments/WeatherAPI_Shared.postman_environment.json` replace `WEATHER_API_KEY` with your key. The `city` variable defaults to `Sydney` — change it there too if you want a different default.
 
 ---
 
