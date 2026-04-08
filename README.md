@@ -2,7 +2,7 @@
 
 Postman collections for testing the WeatherAPI `/current.json` endpoint. Two separate collections — current weather and air quality — so you can run either one independently.
 
-## What's in here
+## Repo
 
 ```
 collections/
@@ -22,9 +22,9 @@ TEST_CASES.md
 
 ## Setup
 
-You need a free WeatherAPI key. Sign up at https://www.weatherapi.com/signup.aspx — free tier gives you 1 million calls a month.
 
-Open `environments/WeatherAPI_Shared.postman_environment.json` and replace `YOUR_API_KEY_HERE` with your key. The `city` variable defaults to `Sydney` — change it there too if you want a different default.
+
+In `environments/WeatherAPI_Shared.postman_environment.json` replace `YOUR_API_KEY_HERE` with your key. The `city` variable defaults to `Sydney` — change it there too if you want a different default.
 
 ---
 
@@ -71,7 +71,7 @@ Results appear in the Collection Runner after the run finishes. Green = passed, 
 
 1. Push this repo to GitHub
 2. Go to https://app.circleci.com and click **Add Project**
-3. Connect your GitHub repo
+3. Connect  GitHub repo
 4. Go to **Project Settings → Environment Variables**
 5. Add a variable called `WEATHERAPI_KEY` and set it to your API key
 
@@ -79,7 +79,7 @@ That's all the setup needed. Your key lives in CircleCI and never touches any fi
 
 ### Trigger a run from the CircleCI UI
 
-1. Go to your project in CircleCI
+1. Go to project in CircleCI
 2. Click **Pipelines** in the left sidebar
 3. Click **Trigger Pipeline** (top right)
 4. Click **Add Parameters** to choose what to run
@@ -165,7 +165,7 @@ Next time you run with `use_data_file=true` it will pick them up automatically.
 
 ---
 
-## A note on the NEPM AQI
+## Converting to Australia standards NEPM AQI
 
 WeatherAPI doesn't return an Australian AQI — it returns raw pollutant values. Feature 2 calculates the Australian NEPM AQI from those values using:
 
@@ -174,4 +174,4 @@ sub-index = (concentration / NEPM standard) × 100
 overall AQI = highest sub-index across all pollutants
 ```
 
-Since the API gives instantaneous readings rather than time-averaged ones, the number is indicative rather than an official figure. For certified readings go to your state EPA.
+Since the API gives instantaneous readings rather than time-averaged ones, the number is indicative rather than an official figure. 
