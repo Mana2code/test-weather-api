@@ -46,7 +46,7 @@ commands:
           command: |
             ./node_modules/.bin/newman run << parameters.collection >> \
               --environment environments/WeatherAPI_Shared.postman_environment.json \
-              --env-var "api_key=${WEATHERAPI_KEY}" \
+              --env-var "api_key=${coll}" \
               --env-var "city=<< pipeline.parameters.city >>" \
               --reporters cli,htmlextra \
               --reporter-htmlextra-export ~/repo/reports/<< parameters.report_file >> \

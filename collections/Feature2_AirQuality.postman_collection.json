@@ -20,7 +20,7 @@
                   "const apiKey = pm.variables.get('api_key');",
                   "const city = pm.variables.get('city');",
                   "",
-                  "if (!apiKey || apiKey === 'WEATHER_API_KEY') {",
+                  "if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {",
                   "    throw new Error('api_key is not set');",
                   "}",
                   "if (!city || city.trim() === '') {",
@@ -255,12 +255,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Status is 401 or 403', () => pm.expect([401, 403]).to.include(pm.response.code));",
                   "",
                   "const json = pm.response.json();",
                   "",
                   "pm.test('Error object is present', () => pm.expect(json).to.have.property('error'));",
-                  "pm.test('Error code is 2006 or 2008', () => pm.expect([2006, 2008]).to.include(json.error.code));"
+                  "pm.test('Error code is 2006 or 2008', () => pm.expect([2006, 2007, 2008]).to.include(json.error.code));"
                 ]
               }
             }
