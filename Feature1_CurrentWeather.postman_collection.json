@@ -1,0 +1,315 @@
+{
+  "info": {
+    "_postman_id": "col-current-weather-001",
+    "name": "Feature 1 - Current Weather",
+    "description": "Current weather tests against /current.json with aqi=no. City is driven by the {{city}} variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Positive Tests",
+      "item": [
+        {
+          "name": "CW-TC01 - Get current weather for city",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const apiKey = pm.variables.get('api_key');",
+                  "const city = pm.variables.get('city');",
+                  "",
+                  "if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {",
+                  "    throw new Error('api_key is not set');",
+                  "}",
+                  "if (!city || city.trim() === '') {",
+                  "    throw new Error('city is empty');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time under 5000ms', () => {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is JSON', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "const city = pm.variables.get('city');",
+                  "",
+                  "pm.test('Response has location and current', () => {",
+                  "    pm.expect(json).to.have.all.keys('location', 'current');",
+                  "});",
+                  "",
+                  "pm.test('Location name matches city', () => {",
+                  "    pm.expect(json.location.name.toLowerCase()).to.include(city.toLowerCase());",
+                  "});",
+                  "",
+                  "pm.test('Location has region, country, lat, lon, localtime', () => {",
+                  "    pm.expect(json.location.region).to.be.a('string').and.not.empty;",
+                  "    pm.expect(json.location.country).to.be.a('string').and.not.empty;",
+                  "    pm.expect(json.location.lat).to.be.a('number');",
+                  "    pm.expect(json.location.lon).to.be.a('number');",
+                  "    pm.expect(json.location.localtime).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('temp_c and temp_f are numbers', () => {",
+                  "    pm.expect(json.current.temp_c).to.be.a('number');",
+                  "    pm.expect(json.current.temp_f).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test('temp_c and temp_f are consistent', () => {",
+                  "    const expected = (json.current.temp_c * 9 / 5) + 32;",
+                  "    pm.expect(Math.abs(json.current.temp_f - expected)).to.be.below(1);",
+                  "});",
+                  "",
+                  "pm.test('feelslike_c and feelslike_f are numbers', () => {",
+                  "    pm.expect(json.current.feelslike_c).to.be.a('number');",
+                  "    pm.expect(json.current.feelslike_f).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test('condition has text and code', () => {",
+                  "    pm.expect(json.current.condition.text).to.be.a('string').and.not.empty;",
+                  "    pm.expect(json.current.condition.code).to.be.a('number').and.above(0);",
+                  "});",
+                  "",
+                  "pm.test('humidity is between 0 and 100', () => {",
+                  "    pm.expect(json.current.humidity).to.be.within(0, 100);",
+                  "});",
+                  "",
+                  "pm.test('wind_kph and wind_dir are present', () => {",
+                  "    pm.expect(json.current.wind_kph).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(json.current.wind_dir).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('pressure_mb, precip_mm, vis_km, uv are present', () => {",
+                  "    pm.expect(json.current.pressure_mb).to.be.a('number').and.above(0);",
+                  "    pm.expect(json.current.precip_mm).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(json.current.vis_km).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(json.current.uv).to.be.a('number').and.at.least(0);",
+                  "});",
+                  "",
+                  "pm.test('is_day is 0 or 1', () => {",
+                  "    pm.expect([0, 1]).to.include(json.current.is_day);",
+                  "});",
+                  "",
+                  "pm.test('air_quality block is absent when aqi=no', () => {",
+                  "    pm.expect(json.current).to.not.have.property('air_quality');",
+                  "});",
+                  "",
+                  "pm.environment.set('result_temp_c', json.current.temp_c);",
+                  "pm.environment.set('result_temp_f', json.current.temp_f);",
+                  "pm.environment.set('result_feelslike_c', json.current.feelslike_c);",
+                  "pm.environment.set('result_feelslike_f', json.current.feelslike_f);",
+                  "pm.environment.set('result_condition', json.current.condition.text);",
+                  "pm.environment.set('result_humidity', json.current.humidity);",
+                  "pm.environment.set('result_wind_kph', json.current.wind_kph);",
+                  "pm.environment.set('result_wind_dir', json.current.wind_dir);",
+                  "pm.environment.set('result_pressure_mb', json.current.pressure_mb);",
+                  "pm.environment.set('result_precip_mm', json.current.precip_mm);",
+                  "pm.environment.set('result_vis_km', json.current.vis_km);",
+                  "pm.environment.set('result_uv', json.current.uv);",
+                  "pm.environment.set('result_is_day', json.current.is_day);",
+                  "pm.environment.set('last_updated', json.current.last_updated);",
+                  "",
+                  "console.log('City:', json.location.name, json.location.country);",
+                  "console.log('Temp:', json.current.temp_c, 'C /', json.current.temp_f, 'F');",
+                  "console.log('Condition:', json.current.condition.text);",
+                  "console.log('Humidity:', json.current.humidity + '%', '| Wind:', json.current.wind_kph, 'kph', json.current.wind_dir);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q={{city}}&aqi=no",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "{{city}}" },
+                { "key": "aqi", "value": "no" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CW-TC02 - Verify result_temp_c was stored",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const temp = pm.environment.get('result_temp_c');",
+                  "if (temp === null || temp === undefined || temp === '') {",
+                  "    throw new Error('result_temp_c is not set - run CW-TC01 first');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "const stored = parseFloat(pm.environment.get('result_temp_c'));",
+                  "const live = json.current.temp_c;",
+                  "",
+                  "pm.test('result_temp_c is a valid number', () => {",
+                  "    pm.expect(isNaN(stored)).to.be.false;",
+                  "    pm.expect(isFinite(stored)).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Stored temp_c is within 2 degrees of live value', () => {",
+                  "    pm.expect(Math.abs(live - stored)).to.be.below(2);",
+                  "});",
+                  "",
+                  "console.log('Stored:', stored, 'C | Live:', live, 'C');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q={{city}}&aqi=no",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "{{city}}" },
+                { "key": "aqi", "value": "no" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative Tests",
+      "item": [
+        {
+          "name": "CW-TC03 - Invalid API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Error object is present', () => pm.expect(json).to.have.property('error'));",
+                  "pm.test('Error code is 2006 or 2008', () => pm.expect([2006, 2008]).to.include(json.error.code));",
+                  "pm.test('Error message is not empty', () => pm.expect(json.error.message).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key=INVALID_KEY_000&q={{city}}&aqi=no",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "INVALID_KEY_000" },
+                { "key": "q", "value": "{{city}}" },
+                { "key": "aqi", "value": "no" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CW-TC04 - Empty city",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Error object is present', () => pm.expect(json).to.have.property('error'));",
+                  "pm.test('Error code is 1003', () => pm.expect(json.error.code).to.eql(1003));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q=&aqi=no",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "" },
+                { "key": "aqi", "value": "no" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CW-TC05 - Unknown city",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Error object is present', () => pm.expect(json).to.have.property('error'));",
+                  "pm.test('Error code is 1006', () => pm.expect(json.error.code).to.eql(1006));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q=ZZZNOWHERE999&aqi=no",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "ZZZNOWHERE999" },
+                { "key": "aqi", "value": "no" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

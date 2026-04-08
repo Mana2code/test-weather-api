@@ -1,0 +1,230 @@
+version: 2.1
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WeatherAPI Test Suite — CircleCI Configuration
+#
+# ENDPOINT UNDER TEST
+#   Both features call the same endpoint: {{base_url}}/current.json
+#   Feature 1: aqi=no   → validates current weather fields
+#   Feature 2: aqi=yes  → validates the air_quality block in the same response
+#
+# HOW TO TRIGGER A SINGLE FEATURE FROM THE CIRCLECI UI
+#   1. Go to your project in CircleCI → Pipelines
+#   2. Click "Trigger Pipeline" (top right)
+#   3. Under "Add Parameters", set:
+#        run_current_weather  →  true / false
+#        run_air_quality      →  true / false
+#        city                 →  e.g. Melbourne  (overrides default Sydney)
+#        use_data_file        →  true  (iterates over all cities in data/cities.json)
+#   4. Click "Trigger Pipeline" — only the jobs matching your flags will run
+#
+# HOW TO PASS city VIA THE CIRCLECI API (curl)
+#   curl --request POST \
+#     --url https://circleci.com/api/v2/project/gh/<ORG>/<REPO>/pipeline \
+#     --header "Circle-Token: $CIRCLECI_TOKEN" \
+#     --header "Content-Type: application/json" \
+#     --data '{
+#       "branch": "main",
+#       "parameters": {
+#         "run_current_weather": true,
+#         "run_air_quality": false,
+#         "city": "Melbourne"
+#       }
+#     }'
+#
+# SECRETS — add these in CircleCI Project Settings → Environment Variables:
+#   WEATHERAPI_KEY   →  your API key from weatherapi.com
+# ═══════════════════════════════════════════════════════════════════════════════
+
+parameters:
+
+  run_current_weather:
+    type: boolean
+    default: true
+    description: "Run Feature 1 — /current.json?aqi=no (current weather tests)"
+
+  run_air_quality:
+    type: boolean
+    default: true
+    description: "Run Feature 2 — /current.json?aqi=yes (air quality tests)"
+
+  city:
+    type: string
+    default: "Sydney"
+    description: "City to test. Passed as --env-var city=<value> to Newman. Ignored when use_data_file=true."
+
+  use_data_file:
+    type: boolean
+    default: false
+    description: "When true, Newman iterates over all cities in data/cities.json. Overrides the city parameter."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Executor
+# ─────────────────────────────────────────────────────────────────────────────
+executors:
+  newman:
+    docker:
+      - image: cimg/node:20.11
+    working_directory: ~/repo
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Commands
+# ─────────────────────────────────────────────────────────────────────────────
+commands:
+
+  install_newman:
+    steps:
+      - run:
+          name: Install Newman and htmlextra reporter
+          command: npm install -g newman newman-reporter-htmlextra
+
+  run_newman_single_city:
+    parameters:
+      collection:
+        type: string
+      report_file:
+        type: string
+      report_title:
+        type: string
+    steps:
+      - run:
+          name: "Newman — single city: << pipeline.parameters.city >>"
+          command: |
+            newman run << parameters.collection >> \
+              --environment environments/WeatherAPI_Shared.postman_environment.json \
+              --env-var "api_key=${WEATHERAPI_KEY}" \
+              --env-var "city=<< pipeline.parameters.city >>" \
+              --reporters cli,htmlextra \
+              --reporter-htmlextra-export ~/repo/reports/<< parameters.report_file >> \
+              --reporter-htmlextra-title "<< parameters.report_title >> — << pipeline.parameters.city >>" \
+              --color on
+          when: always
+
+  run_newman_data_file:
+    parameters:
+      collection:
+        type: string
+      report_file:
+        type: string
+      report_title:
+        type: string
+    steps:
+      - run:
+          name: "Newman — all cities from data/cities.json"
+          command: |
+            newman run << parameters.collection >> \
+              --environment environments/WeatherAPI_Shared.postman_environment.json \
+              --env-var "api_key=${WEATHERAPI_KEY}" \
+              --iteration-data data/cities.json \
+              --reporters cli,htmlextra \
+              --reporter-htmlextra-export ~/repo/reports/<< parameters.report_file >> \
+              --reporter-htmlextra-title "<< parameters.report_title >> — All Cities" \
+              --color on
+          when: always
+
+  upload_reports:
+    steps:
+      - store_artifacts:
+          path: ~/repo/reports
+          destination: newman-reports
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Jobs
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+
+  # ── Feature 1: /current.json?aqi=no ──────────────────────────────────────
+  feature1_current_weather:
+    executor: newman
+    steps:
+      - checkout
+      - install_newman
+      - run:
+          name: Create reports directory
+          command: mkdir -p ~/repo/reports
+      - when:
+          condition: << pipeline.parameters.use_data_file >>
+          steps:
+            - run_newman_data_file:
+                collection: collections/Feature1_CurrentWeather.postman_collection.json
+                report_file: feature1_current_weather_multicity.html
+                report_title: "Feature 1 — Current Weather"
+      - when:
+          condition:
+            not: << pipeline.parameters.use_data_file >>
+          steps:
+            - run_newman_single_city:
+                collection: collections/Feature1_CurrentWeather.postman_collection.json
+                report_file: feature1_current_weather.html
+                report_title: "Feature 1 — Current Weather"
+      - upload_reports
+
+  # ── Feature 2: /current.json?aqi=yes ─────────────────────────────────────
+  feature2_air_quality:
+    executor: newman
+    steps:
+      - checkout
+      - install_newman
+      - run:
+          name: Create reports directory
+          command: mkdir -p ~/repo/reports
+      - when:
+          condition: << pipeline.parameters.use_data_file >>
+          steps:
+            - run_newman_data_file:
+                collection: collections/Feature2_AirQuality.postman_collection.json
+                report_file: feature2_air_quality_multicity.html
+                report_title: "Feature 2 — Air Quality"
+      - when:
+          condition:
+            not: << pipeline.parameters.use_data_file >>
+          steps:
+            - run_newman_single_city:
+                collection: collections/Feature2_AirQuality.postman_collection.json
+                report_file: feature2_air_quality.html
+                report_title: "Feature 2 — Air Quality"
+      - upload_reports
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Workflows
+# ─────────────────────────────────────────────────────────────────────────────
+workflows:
+
+  # ── On every push to main: run both features with default city (Sydney) ──
+  on_push:
+    when:
+      and:
+        - equal: [ main, << pipeline.git.branch >> ]
+        - equal: [ true, << pipeline.parameters.run_current_weather >> ]
+        - equal: [ true, << pipeline.parameters.run_air_quality >> ]
+    jobs:
+      - feature1_current_weather
+      - feature2_air_quality
+
+  # ── Manual trigger: run only Feature 1 ───────────────────────────────────
+  run_feature1_only:
+    when:
+      and:
+        - equal: [ true,  << pipeline.parameters.run_current_weather >> ]
+        - equal: [ false, << pipeline.parameters.run_air_quality >> ]
+    jobs:
+      - feature1_current_weather
+
+  # ── Manual trigger: run only Feature 2 ───────────────────────────────────
+  run_feature2_only:
+    when:
+      and:
+        - equal: [ false, << pipeline.parameters.run_current_weather >> ]
+        - equal: [ true,  << pipeline.parameters.run_air_quality >> ]
+    jobs:
+      - feature2_air_quality
+
+  # ── Manual trigger: run both features (explicit) ──────────────────────────
+  run_both_features:
+    when:
+      and:
+        - equal: [ true, << pipeline.parameters.run_current_weather >> ]
+        - equal: [ true, << pipeline.parameters.run_air_quality >> ]
+    jobs:
+      - feature1_current_weather
+      - feature2_air_quality

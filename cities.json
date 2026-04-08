@@ -1,0 +1,22 @@
+[
+  {
+    "city": "Sydney",
+    "_comment": "Default target city — New South Wales, Australia"
+  },
+  {
+    "city": "Melbourne",
+    "_comment": "Victoria, Australia"
+  },
+  {
+    "city": "Brisbane",
+    "_comment": "Queensland, Australia"
+  },
+  {
+    "city": "London",
+    "_comment": "United Kingdom"
+  },
+  {
+    "city": "New York",
+    "_comment": "United States"
+  }
+]

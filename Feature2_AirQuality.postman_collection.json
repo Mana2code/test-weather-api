@@ -1,0 +1,352 @@
+{
+  "info": {
+    "_postman_id": "col-air-quality-001",
+    "name": "Feature 2 - Air Quality",
+    "description": "Air quality tests against /current.json with aqi=yes. Same endpoint as Feature 1, just aqi=yes. Australian NEPM AQI is calculated from the raw pollutant values in the response.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Positive Tests",
+      "item": [
+        {
+          "name": "AQ-TC01 - Get air quality for city",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const apiKey = pm.variables.get('api_key');",
+                  "const city = pm.variables.get('city');",
+                  "",
+                  "if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {",
+                  "    throw new Error('api_key is not set');",
+                  "}",
+                  "if (!city || city.trim() === '') {",
+                  "    throw new Error('city is empty');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time under 5000ms', () => {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is JSON', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "const city = pm.variables.get('city');",
+                  "",
+                  "pm.test('Response has location and current', () => {",
+                  "    pm.expect(json).to.have.all.keys('location', 'current');",
+                  "});",
+                  "",
+                  "pm.test('Location name matches city', () => {",
+                  "    pm.expect(json.location.name.toLowerCase()).to.include(city.toLowerCase());",
+                  "});",
+                  "",
+                  "pm.test('air_quality block is present when aqi=yes', () => {",
+                  "    pm.expect(json.current).to.have.property('air_quality');",
+                  "    pm.expect(json.current.air_quality).to.be.an('object');",
+                  "});",
+                  "",
+                  "const aq = json.current.air_quality;",
+                  "",
+                  "pm.test('All pollutant fields are non-negative numbers', () => {",
+                  "    pm.expect(aq.co).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(aq.no2).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(aq.o3).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(aq.so2).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(aq['pm2_5']).to.be.a('number').and.at.least(0);",
+                  "    pm.expect(aq.pm10).to.be.a('number').and.at.least(0);",
+                  "});",
+                  "",
+                  "// Australian NEPM AQI",
+                  "// Formula: sub-index = (concentration / NEPM standard) * 100",
+                  "// Overall AQI = highest sub-index across all pollutants",
+                  "// Standards from the National Environment Protection (Ambient Air Quality) Measure",
+                  "const nepmStandards = {",
+                  "    co: 9000,",
+                  "    no2: 120,",
+                  "    o3: 210,",
+                  "    so2: 570,",
+                  "    pm2_5: 25,",
+                  "    pm10: 50",
+                  "};",
+                  "",
+                  "const subIndices = {",
+                  "    co: parseFloat(((aq.co / nepmStandards.co) * 100).toFixed(1)),",
+                  "    no2: parseFloat(((aq.no2 / nepmStandards.no2) * 100).toFixed(1)),",
+                  "    o3: parseFloat(((aq.o3 / nepmStandards.o3) * 100).toFixed(1)),",
+                  "    so2: parseFloat(((aq.so2 / nepmStandards.so2) * 100).toFixed(1)),",
+                  "    pm2_5: parseFloat(((aq['pm2_5'] / nepmStandards.pm2_5) * 100).toFixed(1)),",
+                  "    pm10: parseFloat(((aq.pm10 / nepmStandards.pm10) * 100).toFixed(1))",
+                  "};",
+                  "",
+                  "const nepmAQI = Math.max(...Object.values(subIndices));",
+                  "const dominantPollutant = Object.keys(subIndices).find(k => subIndices[k] === nepmAQI);",
+                  "",
+                  "function getNepmCategory(index) {",
+                  "    if (index <= 33) return 'Good';",
+                  "    if (index <= 66) return 'Fair';",
+                  "    if (index <= 99) return 'Poor';",
+                  "    if (index <= 149) return 'Very Poor';",
+                  "    return 'Hazardous';",
+                  "}",
+                  "",
+                  "const nepmCategory = getNepmCategory(nepmAQI);",
+                  "",
+                  "pm.test('NEPM sub-indices are all non-negative', () => {",
+                  "    Object.values(subIndices).forEach(val => {",
+                  "        pm.expect(val).to.be.a('number').and.at.least(0);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('Overall NEPM AQI is a non-negative number', () => {",
+                  "    pm.expect(nepmAQI).to.be.a('number').and.at.least(0);",
+                  "});",
+                  "",
+                  "pm.test('NEPM category is valid', () => {",
+                  "    pm.expect(['Good', 'Fair', 'Poor', 'Very Poor', 'Hazardous']).to.include(nepmCategory);",
+                  "});",
+                  "",
+                  "pm.test('Dominant pollutant is identified', () => {",
+                  "    pm.expect(['co', 'no2', 'o3', 'so2', 'pm2_5', 'pm10']).to.include(dominantPollutant);",
+                  "});",
+                  "",
+                  "pm.environment.set('result_aqi_co', aq.co);",
+                  "pm.environment.set('result_aqi_no2', aq.no2);",
+                  "pm.environment.set('result_aqi_o3', aq.o3);",
+                  "pm.environment.set('result_aqi_so2', aq.so2);",
+                  "pm.environment.set('result_aqi_pm2_5', aq['pm2_5']);",
+                  "pm.environment.set('result_aqi_pm10', aq.pm10);",
+                  "pm.environment.set('result_nepm_aqi', nepmAQI);",
+                  "pm.environment.set('result_nepm_category', nepmCategory);",
+                  "pm.environment.set('result_nepm_dominant', dominantPollutant);",
+                  "pm.environment.set('result_nepm_sub_co', subIndices.co);",
+                  "pm.environment.set('result_nepm_sub_no2', subIndices.no2);",
+                  "pm.environment.set('result_nepm_sub_o3', subIndices.o3);",
+                  "pm.environment.set('result_nepm_sub_so2', subIndices.so2);",
+                  "pm.environment.set('result_nepm_sub_pm2_5', subIndices.pm2_5);",
+                  "pm.environment.set('result_nepm_sub_pm10', subIndices.pm10);",
+                  "",
+                  "console.log('City:', json.location.name, json.location.country);",
+                  "console.log('CO:', aq.co, '| NO2:', aq.no2, '| O3:', aq.o3, '| SO2:', aq.so2);",
+                  "console.log('PM2.5:', aq['pm2_5'], '| PM10:', aq.pm10);",
+                  "console.log('NEPM AQI:', nepmAQI, '|', nepmCategory, '| Dominant:', dominantPollutant);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q={{city}}&aqi=yes",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "{{city}}" },
+                { "key": "aqi", "value": "yes" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "AQ-TC02 - Verify NEPM AQI was stored",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const nepm = pm.environment.get('result_nepm_aqi');",
+                  "if (nepm === null || nepm === undefined || nepm === '') {",
+                  "    throw new Error('result_nepm_aqi is not set - run AQ-TC01 first');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "const storedNEPM = parseFloat(pm.environment.get('result_nepm_aqi'));",
+                  "const storedCategory = pm.environment.get('result_nepm_category');",
+                  "const storedDominant = pm.environment.get('result_nepm_dominant');",
+                  "",
+                  "pm.test('result_nepm_aqi is a non-negative number', () => {",
+                  "    pm.expect(storedNEPM).to.be.a('number').and.at.least(0);",
+                  "});",
+                  "",
+                  "pm.test('result_nepm_category is a valid NEPM category', () => {",
+                  "    pm.expect(['Good', 'Fair', 'Poor', 'Very Poor', 'Hazardous']).to.include(storedCategory);",
+                  "});",
+                  "",
+                  "pm.test('result_nepm_dominant is a known pollutant', () => {",
+                  "    pm.expect(['co', 'no2', 'o3', 'so2', 'pm2_5', 'pm10']).to.include(storedDominant);",
+                  "});",
+                  "",
+                  "const aq = json.current.air_quality;",
+                  "const nepmStandards = { co: 9000, no2: 120, o3: 210, so2: 570, pm2_5: 25, pm10: 50 };",
+                  "const liveSubIndices = {",
+                  "    co: parseFloat(((aq.co / nepmStandards.co) * 100).toFixed(1)),",
+                  "    no2: parseFloat(((aq.no2 / nepmStandards.no2) * 100).toFixed(1)),",
+                  "    o3: parseFloat(((aq.o3 / nepmStandards.o3) * 100).toFixed(1)),",
+                  "    so2: parseFloat(((aq.so2 / nepmStandards.so2) * 100).toFixed(1)),",
+                  "    pm2_5: parseFloat(((aq['pm2_5'] / nepmStandards.pm2_5) * 100).toFixed(1)),",
+                  "    pm10: parseFloat(((aq.pm10 / nepmStandards.pm10) * 100).toFixed(1))",
+                  "};",
+                  "const liveNEPM = Math.max(...Object.values(liveSubIndices));",
+                  "",
+                  "pm.test('Stored NEPM AQI is within 5 of re-calculated live value', () => {",
+                  "    pm.expect(Math.abs(liveNEPM - storedNEPM)).to.be.below(5);",
+                  "});",
+                  "",
+                  "console.log('Stored NEPM AQI:', storedNEPM, '| Live:', liveNEPM, '| Category:', storedCategory, '| Dominant:', storedDominant);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q={{city}}&aqi=yes",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "{{city}}" },
+                { "key": "aqi", "value": "yes" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative Tests",
+      "item": [
+        {
+          "name": "AQ-TC03 - Invalid API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Error object is present', () => pm.expect(json).to.have.property('error'));",
+                  "pm.test('Error code is 2006 or 2008', () => pm.expect([2006, 2008]).to.include(json.error.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key=INVALID_KEY_000&q={{city}}&aqi=yes",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "INVALID_KEY_000" },
+                { "key": "q", "value": "{{city}}" },
+                { "key": "aqi", "value": "yes" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "AQ-TC04 - Empty city",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Error object is present', () => pm.expect(json).to.have.property('error'));",
+                  "pm.test('Error code is 1003', () => pm.expect(json.error.code).to.eql(1003));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q=&aqi=yes",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "" },
+                { "key": "aqi", "value": "yes" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "AQ-TC05 - Unknown city",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Error object is present', () => pm.expect(json).to.have.property('error'));",
+                  "pm.test('Error code is 1006', () => pm.expect(json.error.code).to.eql(1006));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/current.json?key={{api_key}}&q=ZZZNOWHERE999&aqi=yes",
+              "host": ["{{base_url}}"],
+              "path": ["current.json"],
+              "query": [
+                { "key": "key", "value": "{{api_key}}" },
+                { "key": "q", "value": "ZZZNOWHERE999" },
+                { "key": "aqi", "value": "yes" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
