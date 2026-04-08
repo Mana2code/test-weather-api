@@ -46,7 +46,7 @@ commands:
           command: |
             ./node_modules/.bin/newman run << parameters.collection >> \
               --environment environments/WeatherAPI_Shared.postman_environment.json \
-              --env-var "api_key=${coll}" \
+              --env-var "api_key=${WEATHERAPI_KEY}" \
               --env-var "city=<< pipeline.parameters.city >>" \
               --reporters cli,htmlextra \
               --reporter-htmlextra-export ~/repo/reports/<< parameters.report_file >> \
@@ -88,6 +88,15 @@ jobs:
     executor: newman
     steps:
       - checkout
+      - run:
+          name: Debug - check WEATHERAPI_KEY is set
+          command: |
+            if [ -z "${WEATHERAPI_KEY}" ]; then
+              echo "WEATHERAPI_KEY is empty or not set"
+              exit 1
+            else
+              echo "WEATHERAPI_KEY is set (length: ${#WEATHERAPI_KEY})"
+            fi
       - install_newman
       - run:
           name: Create reports directory
@@ -98,7 +107,7 @@ jobs:
             - run_newman_data_file:
                 collection: collections/Feature1_CurrentWeather.postman_collection.json
                 report_file: feature1_current_weather_multicity.html
-                report_title: "Feature 1 — Current Weather"
+                report_title: "Feature 1 - Current Weather"
       - when:
           condition:
             not: << pipeline.parameters.use_data_file >>
@@ -106,13 +115,22 @@ jobs:
             - run_newman_single_city:
                 collection: collections/Feature1_CurrentWeather.postman_collection.json
                 report_file: feature1_current_weather.html
-                report_title: "Feature 1 — Current Weather"
+                report_title: "Feature 1 - Current Weather"
       - upload_reports
 
   feature2_air_quality:
     executor: newman
     steps:
       - checkout
+      - run:
+          name: Debug - check WEATHERAPI_KEY is set
+          command: |
+            if [ -z "${WEATHERAPI_KEY}" ]; then
+              echo "WEATHERAPI_KEY is empty or not set"
+              exit 1
+            else
+              echo "WEATHERAPI_KEY is set (length: ${#WEATHERAPI_KEY})"
+            fi
       - install_newman
       - run:
           name: Create reports directory
@@ -123,7 +141,7 @@ jobs:
             - run_newman_data_file:
                 collection: collections/Feature2_AirQuality.postman_collection.json
                 report_file: feature2_air_quality_multicity.html
-                report_title: "Feature 2 — Air Quality"
+                report_title: "Feature 2 - Air Quality"
       - when:
           condition:
             not: << pipeline.parameters.use_data_file >>
@@ -131,7 +149,7 @@ jobs:
             - run_newman_single_city:
                 collection: collections/Feature2_AirQuality.postman_collection.json
                 report_file: feature2_air_quality.html
-                report_title: "Feature 2 — Air Quality"
+                report_title: "Feature 2 - Air Quality"
       - upload_reports
 
 workflows:
